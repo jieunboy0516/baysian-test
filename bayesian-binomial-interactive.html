@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Temporary STA350 Bayesian binomial interactive plots</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f5f7fa; --surface: #ffffff; --ink: #17263a;
+      --muted: #536579; --line: #cfdae5; --grid: #e8eef4;
+      --prior: #2672a6; --like: #d47d2d; --post: #218260;
+      --point: #a13f78; --track: #d5e1eb;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111a26; --surface: #1b2837; --ink: #eaf1f8;
+        --muted: #bac9d8; --line: #41546a; --grid: #34465a;
+        --prior: #78c7f1; --like: #f5b46c; --post: #79d9ae;
+        --point: #ee94bf; --track: #40556c;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink);
+      font: 16px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; }
+    main { max-width: 1160px; margin: auto; padding: 24px clamp(14px, 3vw, 36px) 48px; }
+    header { margin-bottom: 24px; }
+    .eyebrow { color: var(--prior); font-size: .78rem; letter-spacing: .13em;
+      text-transform: uppercase; font-weight: 700; }
+    h1 { font-size: clamp(1.7rem, 3.3vw, 2.7rem); line-height: 1.12;
+      letter-spacing: -.025em; margin: 8px 0 12px; }
+    h2 { font-size: 1.18rem; line-height: 1.25; margin: 0 0 5px; }
+    p { margin: 0; }
+    header p { max-width: 760px; color: var(--muted); }
+    .controls { background: var(--surface); border: 1px solid var(--line);
+      border-radius: 14px; padding: 18px; }
+    .controls h2 { margin-bottom: 4px; }
+    .instruction { color: var(--muted); font-size: .88rem; margin-bottom: 17px; }
+    .slider-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 18px 24px; }
+    .control label { display: flex; justify-content: space-between; gap: 12px;
+      align-items: baseline; font-size: .92rem; font-weight: 600; }
+    .control output { font-variant-numeric: tabular-nums; color: var(--prior); }
+    input[type="range"] { display: block; width: 100%; margin: 9px 0 0;
+      accent-color: var(--prior); cursor: pointer; min-height: 26px; }
+    input[type="range"]:focus-visible { outline: 3px solid var(--point);
+      outline-offset: 2px; }
+    .stats { display: flex; flex-wrap: wrap; gap: 10px 24px; padding: 14px 1px 2px;
+      font-variant-numeric: tabular-nums; font-size: .92rem; }
+    .stats span { color: var(--muted); }
+    .stats strong { color: var(--ink); font-weight: 700; }
+    .plot { margin-top: 18px; padding: 18px 18px 15px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: 14px; }
+    .plot > p { color: var(--muted); font-size: .9rem; }
+    .legend { display: flex; flex-wrap: wrap; gap: 5px 18px; margin-top: 10px;
+      color: var(--muted); font-size: .85rem; }
+    .legend span { display: inline-flex; align-items: center; gap: 7px; }
+    .swatch { width: 22px; height: 0; border-top: 3px solid; display: inline-block; }
+    .prior { border-color: var(--prior); } .like { border-color: var(--like); }
+    .post { border-color: var(--post); } .point { border-color: var(--point); }
+    .dashed { border-top-style: dashed; }
+    svg { display: block; width: 100%; height: auto; overflow: visible; }
+    .chart-wrap { margin-top: 8px; width: 100%; }
+    svg text { font: 12px system-ui, -apple-system, Segoe UI, sans-serif;
+      fill: var(--muted); }
+    svg .axis-title { font-size: 13px; fill: var(--ink); }
+    .two-up { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px; }
+    .two-up .plot { min-width: 0; }
+    .result { color: var(--ink); font-variant-numeric: tabular-nums; }
+    footer { color: var(--muted); margin-top: 20px; font-size: .85rem; }
+    @media (max-width: 790px) {
+      .slider-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .two-up { grid-template-columns: 1fr; gap: 0; }
+    }
+    @media (max-width: 520px) {
+      .slider-grid { grid-template-columns: 1fr; gap: 14px; }
+      .plot { padding: 14px 9px 12px; }
+      main { padding-top: 16px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">STA350 · Bayesian binomial</div>
+    <h1>Move the assumptions. Watch the update.</h1>
+    <p>Explore three figures from the lecture. The coin's observed heads, Beta prior, and prior probability of an exactly fair coin all affect different parts of the answer.</p>
+  </header>
+
+  <section class="controls" aria-labelledby="controls-title">
+    <h2 id="controls-title">Model and data</h2>
+    <p class="instruction">When you change the number of tosses, the observed fraction is kept approximately fixed. Move “heads observed” to change it directly.</p>
+    <div class="slider-grid">
+      <div class="control"><label for="alpha">Prior α <output id="alpha-value">2</output></label><input id="alpha" type="range" min="0.5" max="20" step="0.5" value="2"></div>
+      <div class="control"><label for="beta">Prior β <output id="beta-value">2</output></label><input id="beta" type="range" min="0.5" max="20" step="0.5" value="2"></div>
+      <div class="control"><label for="n">Tosses observed <output id="n-value">100</output></label><input id="n" type="range" min="10" max="500" step="1" value="100"></div>
+      <div class="control"><label for="x">Heads observed <output id="x-value">57</output></label><input id="x" type="range" min="0" max="100" step="1" value="57"></div>
+      <div class="control"><label for="pi0">Prior P(fair coin) <output id="pi0-value">0.50</output></label><input id="pi0" type="range" min="0.01" max="0.99" step="0.01" value="0.5"></div>
+      <div class="control"><label for="m">Future tosses <output id="m-value">50</output></label><input id="m" type="range" min="10" max="100" step="1" value="50"></div>
+    </div>
+    <div class="stats" aria-live="polite" aria-atomic="true">
+      <div><span>Observed fraction </span><strong id="observed-stat">0.570</strong></div>
+      <div><span>Beta posterior mean </span><strong id="mean-stat">0.567</strong></div>
+      <div><span>Bayes factor for fair coin </span><strong id="bf-stat">2.084</strong></div>
+      <div><span>Posterior P(fair coin) </span><strong id="null-stat">0.676</strong></div>
+    </div>
+  </section>
+
+  <section class="plot" aria-labelledby="update-title">
+    <h2 id="update-title">1. Prior × likelihood → posterior</h2>
+    <p>The likelihood is scaled to integrate to one over θ for this shape comparison. The green curve is the posterior under the continuous Beta prior, and also the slab conditional on a biased coin.</p>
+    <div class="chart-wrap"><svg id="update-chart" role="img" aria-label="Prior, normalized likelihood, and posterior density versus coin probability theta"></svg></div>
+    <div class="legend" aria-hidden="true"><span><i class="swatch prior"></i>Beta prior</span><span><i class="swatch like"></i>Normalized likelihood</span><span><i class="swatch post"></i>Beta posterior</span></div>
+  </section>
+
+  <div class="two-up">
+    <section class="plot" aria-labelledby="predict-title">
+      <h2 id="predict-title">2. Predict future counts</h2>
+      <p>Exact Beta Binomial probabilities under the continuous Beta model for the next <span id="future-label">50</span> tosses, before and after the observed data.</p>
+      <div class="chart-wrap"><svg id="predict-chart" role="img" aria-label="Prior and posterior predictive probabilities versus future count of heads"></svg></div>
+      <div class="legend" aria-hidden="true"><span><i class="swatch prior"></i>Prior predictive</span><span><i class="swatch post"></i>Posterior predictive</span></div>
+    </section>
+    <section class="plot" aria-labelledby="spike-title">
+      <h2 id="spike-title">3. Spike and slab: an exact fair coin</h2>
+      <p>The curve shows P(fair coin | k heads) for every possible count k at the selected sample size. The dot marks your observed count.</p>
+      <div class="chart-wrap"><svg id="spike-chart" role="img" aria-label="Posterior probability of an exactly fair coin versus observed count of heads"></svg></div>
+      <div class="legend" aria-hidden="true"><span><i class="swatch point"></i>Posterior null probability</span><span><i class="swatch like dashed"></i>Prior null probability</span></div>
+    </section>
+  </div>
+
+  <footer>All curves use exact Beta and Beta Binomial formulas, evaluated locally in this file. The point null is θ = 0.5. Under the alternative, θ has the selected Beta(α, β) prior. No network connection or R installation is needed.</footer>
+</main>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const ids = ['alpha', 'beta', 'n', 'x', 'pi0', 'm'];
+  const inputs = Object.fromEntries(ids.map(id => [id, $(id)]));
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const lanczos = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+    771.3234287776531, -176.6150291621406, 12.507343278686905,
+    -0.13857109526572012, 9.984369578019572e-6, 1.5056327351493116e-7];
+  function logGamma(z) {
+    if (z < 0.5) return Math.log(Math.PI) - Math.log(Math.sin(Math.PI * z)) - logGamma(1 - z);
+    z -= 1;
+    let a = lanczos[0];
+    for (let i = 1; i < lanczos.length; i++) a += lanczos[i] / (z + i);
+    const t = z + 7.5;
+    return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(a);
+  }
+  const logBeta = (a, b) => logGamma(a) + logGamma(b) - logGamma(a + b);
+  const logChoose = (n, k) => logGamma(n + 1) - logGamma(k + 1) - logGamma(n - k + 1);
+  const betaPDF = (t, a, b) => Math.exp((a - 1) * Math.log(t) + (b - 1) * Math.log1p(-t) - logBeta(a, b));
+  const betaBinomial = (k, m, a, b) => Math.exp(logChoose(m, k) + logBeta(a + k, b + m - k) - logBeta(a, b));
+  const logistic = z => z >= 0 ? 1 / (1 + Math.exp(-z)) : Math.exp(z) / (1 + Math.exp(z));
+  const logit = p => Math.log(p / (1 - p));
+  function logBF(n, k, a, b) { return n * Math.log(0.5) + logBeta(a, b) - logBeta(a + k, b + n - k); }
+  function nullProbability(n, k, a, b, pi0) { return logistic(logit(pi0) + logBF(n, k, a, b)); }
+  function el(tag, attrs = {}, text = null) {
+    const node = document.createElementNS(svgNS, tag);
+    for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, String(value));
+    if (text !== null) node.textContent = text;
+    return node;
+  }
+  function pretty(v) {
+    if (v >= 10) return v.toFixed(0);
+    if (v >= 1) return v.toFixed(1).replace(/\.0$/, '');
+    if (v >= 0.1) return v.toFixed(2).replace(/0$/, '');
+    return v.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+  }
+  function drawChart(svg, spec) {
+    const width = Math.max(280, Math.round(svg.parentElement.getBoundingClientRect().width));
+    const height = width < 500 ? 270 : 310;
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    svg.replaceChildren();
+    svg.appendChild(el('title', {}, spec.title));
+    const left = 62, right = 16, top = 14, bottom = 49;
+    const pw = width - left - right, ph = height - top - bottom;
+    const sx = x => left + (x - spec.xMin) / (spec.xMax - spec.xMin) * pw;
+    const sy = y => top + ph - (y - spec.yMin) / (spec.yMax - spec.yMin) * ph;
+    for (const t of spec.yTicks) {
+      svg.appendChild(el('line', {x1:left, y1:sy(t), x2:left+pw, y2:sy(t), stroke:'var(--grid)', 'stroke-width':1}));
+      svg.appendChild(el('text', {x:left-8, y:sy(t)+4, 'text-anchor':'end'}, spec.yFormat(t)));
+    }
+    for (const t of spec.xTicks) {
+      svg.appendChild(el('line', {x1:sx(t), y1:top+ph, x2:sx(t), y2:top+ph+5, stroke:'var(--line)', 'stroke-width':1}));
+      svg.appendChild(el('text', {x:sx(t), y:top+ph+19,
+        'text-anchor':t===spec.xMin?'start':t===spec.xMax?'end':'middle'}, spec.xFormat(t)));
+    }
+    svg.appendChild(el('rect', {x:left, y:top, width:pw, height:ph,
+      fill:'none', stroke:'var(--line)', 'stroke-width':1}));
+    for (const s of spec.series) {
+      const d = s.values.map((p,i) => `${i?'L':'M'}${sx(p[0]).toFixed(2)},${sy(p[1]).toFixed(2)}`).join(' ');
+      svg.appendChild(el('path', {d, fill:'none', stroke:s.color, 'stroke-width':s.width||2.7,
+        'stroke-dasharray':s.dash||'', 'vector-effect':'non-scaling-stroke',
+        'stroke-linejoin':'round'}));
+    }
+    if (spec.marker) {
+      svg.appendChild(el('line', {x1:sx(spec.marker.x), x2:sx(spec.marker.x),
+        y1:sy(spec.marker.y), y2:top+ph, stroke:'var(--point)',
+        'stroke-width':1.3, 'stroke-dasharray':'4 4'}));
+      svg.appendChild(el('circle', {cx:sx(spec.marker.x), cy:sy(spec.marker.y), r:5,
+        fill:'var(--point)', stroke:'var(--surface)', 'stroke-width':1.5}));
+    }
+    svg.appendChild(el('text', {x:left+pw/2, y:height-7, 'text-anchor':'middle', class:'axis-title'}, spec.xLabel));
+    svg.appendChild(el('text', {transform:`translate(17 ${top+ph/2}) rotate(-90)`,
+      'text-anchor':'middle', class:'axis-title'}, spec.yLabel));
+  }
+  function draw() {
+    const a = +inputs.alpha.value, b = +inputs.beta.value;
+    const n = +inputs.n.value, x = +inputs.x.value;
+    const pi0 = +inputs.pi0.value, m = +inputs.m.value;
+    for (const id of ids) $(id + '-value').value = id==='pi0' ? (+inputs[id].value).toFixed(2) : inputs[id].value;
+    $('future-label').textContent = m;
+    const logbf = logBF(n, x, a, b), pnull = nullProbability(n, x, a, b, pi0);
+    $('observed-stat').textContent = (x/n).toFixed(3);
+    $('mean-stat').textContent = ((a+x)/(a+b+n)).toFixed(3);
+    $('bf-stat').textContent = Math.exp(logbf).toPrecision(4);
+    $('null-stat').textContent = pnull.toFixed(3);
+
+    const prior = [], like = [], posterior = [];
+    for (let i=0; i<=500; i++) {
+      const t = 0.001 + 0.998*i/500;
+      prior.push([t,betaPDF(t,a,b)]);
+      like.push([t,betaPDF(t,x+1,n-x+1)]);
+      posterior.push([t,betaPDF(t,a+x,b+n-x)]);
+    }
+    const ymax = Math.max(...prior.map(v=>v[1]), ...like.map(v=>v[1]),
+      ...posterior.map(v=>v[1])) * 1.08;
+    drawChart($('update-chart'), {
+      title:`Beta(${a},${b}) prior, normalized likelihood, and Beta(${a+x},${b+n-x}) posterior`,
+      xMin:0, xMax:1, yMin:0, yMax:ymax, xTicks:[0,.25,.5,.75,1],
+      yTicks:[0,ymax/2,ymax], xFormat:v=>pretty(v), yFormat:v=>pretty(v),
+      xLabel:'Coin probability θ', yLabel:'Density / scaled likelihood',
+      series:[{values:prior,color:'var(--prior)'},{values:like,color:'var(--like)'},
+        {values:posterior,color:'var(--post)',width:3.2}]
+    });
+    const pre = [], post = [];
+    for (let k=0; k<=m; k++) {
+      pre.push([k,betaBinomial(k,m,a,b)]);
+      post.push([k,betaBinomial(k,m,a+x,b+n-x)]);
+    }
+    const ymax2 = Math.max(...pre.map(v=>v[1]), ...post.map(v=>v[1]))*1.12;
+    drawChart($('predict-chart'), {
+      title:`Prior and posterior predictions for ${m} future tosses`,
+      xMin:0, xMax:m, yMin:0, yMax:ymax2, xTicks:[0,Math.round(m/2),m],
+      yTicks:[0,ymax2/2,ymax2], xFormat:v=>String(v), yFormat:v=>pretty(v),
+      xLabel:'Future heads', yLabel:'Probability of count',
+      series:[{values:pre,color:'var(--prior)'},{values:post,color:'var(--post)',width:3.2}]
+    });
+    const curve = [];
+    for (let k=0; k<=n; k++) curve.push([k,nullProbability(n,k,a,b,pi0)]);
+    drawChart($('spike-chart'), {
+      title:`Posterior probability of exact fairness across all counts in ${n} tosses`,
+      xMin:0, xMax:n, yMin:0, yMax:1, xTicks:[0,Math.round(n/2),n],
+      yTicks:[0,.5,1], xFormat:v=>String(v), yFormat:v=>v.toFixed(1),
+      xLabel:'Observed heads k', yLabel:'P(fair coin | k)',
+      series:[{values:[[0,pi0],[n,pi0]],color:'var(--like)',dash:'5 4',width:1.6},
+        {values:curve,color:'var(--point)',width:3.2}], marker:{x,y:pnull}
+    });
+  }
+  let queued = false;
+  function schedule() {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; draw(); });
+  }
+  for (const id of ids) if (id !== 'n') inputs[id].addEventListener('input', schedule);
+  inputs.n.addEventListener('input', () => {
+    const oldN = +(inputs.n.dataset.previous || 100);
+    const ratio = +inputs.x.value / oldN;
+    const newN = +inputs.n.value;
+    inputs.x.max = newN;
+    inputs.x.value = Math.round(ratio * newN);
+    inputs.n.dataset.previous = String(newN);
+    schedule();
+  });
+  new ResizeObserver(schedule).observe(document.querySelector('main'));
+  draw();
+})();
+</script>
+</body>
+</html>
